@@ -18,3 +18,5 @@ dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line-blue
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
 .explorer-bottom{position:relative;overflow:hidden}.explorer-coral{position:absolute;width:190px;height:auto;bottom:12px;right:-71px;opacity:.27;pointer-events:none}.explorer-bottom p,.explorer-bottom>.mono{position:relative}.explorer-bottom p{max-width:145px}.agent-row.selected{border-left:2px solid var(--blue);padding-left:10px;background:linear-gradient(90deg,rgba(36,78,255,.04),transparent 80%)}
+
+.coordinator-tree{margin-top:5px}.coordinator-tree small{margin-left:auto;font:8px var(--mono);color:var(--muted)}

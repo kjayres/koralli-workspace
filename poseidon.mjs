@@ -1,81 +1,100 @@
 import { icon } from './icons.mjs';
+import { coordinators, getCoordinator } from './fleet.mjs';
 
 const tasks = {
-  research: { label: 'Research a question', role: 'Research', icon: 'fish', purpose: 'Read, connect and source', profile: 'Long-context model' },
-  analysis: { label: 'Analyse the evidence', role: 'Analysis', icon: 'squid', purpose: 'Compare, reason and test', profile: 'Reasoning model' },
-  review: { label: 'Review a draft', role: 'Review', icon: 'turtle', purpose: 'Check claims and omissions', profile: 'Reasoning model' }
+  incident: { label: 'Review a service interruption', coordinatorIds: ['galene', 'nereus', 'triton'], reason: 'Galene checks availability and dependencies. Nereus assesses any proposed repair for stability and safe change. Triton prepares the update for approval.' },
+  change: { label: 'Assess a proposed change', coordinatorIds: ['nereus', 'galene', 'triton'], reason: 'Nereus reviews the change and its expected effects. Galene checks the availability requirements. Triton prepares an explanation of the proposed change.' },
+  simulation: { label: 'Explore an operating scenario', coordinatorIds: ['proteus', 'triton'], reason: 'Proteus explores the authorised scenario and keeps assumptions visible. Triton turns the findings into a briefing, clearly labelled as a simulation.' },
+  briefing: { label: 'Prepare an approved briefing', coordinatorIds: ['triton'], reason: 'This example begins with supplied, approved notes. Triton adapts them for the audience and channel; no investigation or system change is requested.' }
 };
 const priorities = { balanced: 'Balanced', speed: 'Speed', depth: 'Depth' };
 const budgets = { small: 'Small allowance', standard: 'Standard allowance', extended: 'Extended allowance' };
 const valid = (value, choices, fallback) => Object.hasOwn(choices, value) ? value : fallback;
+const escape = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 
-// Illustrative routing rules for the design preview. No model is called or trained.
+// Fixed example allocations for the interface. These rules do not execute or train agents.
 export function getRoutePlan(state = {}) {
-  const task = valid(state.task, tasks, 'research');
+  const task = valid(state.task, tasks, 'incident');
   const priority = valid(state.priority, priorities, 'balanced');
   const budget = valid(state.budget, budgets, 'standard');
-  const specialist = tasks[task];
-  let profile = specialist.profile;
-  let allocation = 'One focused pass';
-  let reason = task === 'research'
-    ? 'A long-context profile is proposed for reading across the selected material and keeping sources attached.'
-    : 'A reasoning profile is proposed for examining the evidence and making the checks explicit.';
-
+  const coordinatorIds = [...tasks[task].coordinatorIds];
+  let profile = task === 'briefing' ? 'Compact model profile' : 'Task-matched reasoning profiles';
+  let allocation = 'A focused pass at each handover';
+  let resourceReason = 'Model profiles follow each team’s responsibility.';
   if (budget === 'small') {
-    profile = 'Compact model';
-    allocation = 'One bounded pass';
-    reason = priority === 'depth'
-      ? 'Depth is requested, but the small allowance takes precedence. The preview proposes a compact model and a bounded first pass; a fuller review would need more allowance.'
-      : 'The small allowance takes precedence. The preview proposes a compact model for a bounded first pass and leaves unresolved questions visible.';
+    profile = 'Compact first-pass profiles';
+    allocation = 'A bounded first pass; further work flagged';
+    resourceReason = priority === 'depth'
+      ? 'The small allowance limits the requested depth. Keep the review steps, scope the first pass and flag work needing more allowance.'
+      : 'The small allowance narrows the first pass. It does not remove a review step or authorise a system change.';
   } else if (priority === 'speed') {
-    profile = 'Compact model';
-    allocation = 'One direct pass';
-    reason = 'Speed is the priority, so the preview proposes a compact model and one direct pass. A larger allowance does not need to be fully used.';
+    profile = task === 'briefing' ? 'Compact model profile' : 'Compact profiles + focused reasoning';
+    allocation = 'Short passes, with review steps retained';
+    resourceReason = 'Speed reduces the scope of each pass, while keeping the same responsibilities and handovers. Extra allowance need not be used.';
   } else if (priority === 'depth') {
-    profile = task === 'research' ? 'Long-context reasoning model' : 'Reasoning model';
-    allocation = budget === 'extended' ? 'Main pass + separate checking pass' : 'One focused reasoning pass';
-    reason = budget === 'extended'
-      ? 'Depth and an extended allowance permit a separate checking pass in this example. The specialist still keeps evidence and open questions with the result.'
-      : 'Depth favours a reasoning profile. The standard allowance keeps this to one focused pass rather than an open-ended investigation.';
+    profile = 'Reasoning profiles with extended context';
+    allocation = budget === 'extended' ? 'Main passes + additional checks within each remit' : 'Focused reasoning within the standard allowance';
+    resourceReason = budget === 'extended'
+      ? 'Depth and an extended allowance provide room for additional checks within each team’s remit.'
+      : 'Depth favours reasoning profiles, bounded by the standard allowance.';
   } else if (budget === 'extended') {
-    allocation = 'Main pass + checks where needed';
-    reason += ' Extra allowance is reserved for checking gaps, rather than automatically spending more.';
+    allocation = 'Focused passes, with allowance held for gaps';
+    resourceReason = 'Extra allowance is held for unresolved questions rather than automatically spent.';
   }
-  return { task, priority, budget, role: specialist.role, icon: specialist.icon, profile,
-    recommendationLabel: `${specialist.role} specialist`, budgetLabel: budgets[budget], allocation, reason };
+  const recommendationLabel = coordinatorIds.map(id => getCoordinator(id).name).join(' → ');
+  return { task, priority, budget, coordinatorIds, profile, allocation,
+    reason: `${tasks[task].reason} ${resourceReason}`, label: tasks[task].label,
+    recommendationLabel, budgetLabel: budgets[budget] };
+}
+
+function renderCoordinator(coordinator, plan, expanded) {
+  const allocated = plan.coordinatorIds.includes(coordinator.id);
+  const isExpanded = expanded.includes(coordinator.id);
+  return `<article class="ps-coordinator ${allocated ? 'allocated' : ''}">
+    <button class="ps-team-open" data-coordinator="${coordinator.id}" aria-label="Open ${coordinator.name}: ${escape(coordinator.subtitle)}"><span class="ps-team-symbol">${icon(coordinator.icon, 37)}</span><span class="ps-team-name">${coordinator.name}</span>${icon('arrowRight', 14)}</button>
+    <p class="ps-responsibility">${escape(coordinator.subtitle)}</p>
+    <p class="ps-team-status"><i></i>${allocated ? 'Included in this route' : 'Available when needed'}</p>
+    <button class="ps-team-toggle" data-team-toggle="${coordinator.id}" aria-expanded="${isExpanded}" aria-controls="ps-team-${coordinator.id}"><span>${coordinator.specialists.length} specialists</span>${icon('chevronDown', 13)}</button>
+    <div class="ps-workers" id="ps-team-${coordinator.id}" ${isExpanded ? '' : 'hidden'}><p class="eyebrow">${escape(coordinator.teamName)}</p>${coordinator.specialists.map(specialist => `<button data-agent="${specialist.id}" class="ps-worker">${icon(specialist.icon, 19)}<span>${escape(specialist.name)}</span>${icon('chevron', 11)}</button>`).join('')}</div>
+  </article>`;
 }
 
 export function renderPoseidon(state = {}) {
   const plan = getRoutePlan(state);
-  return `<section class="poseidon-view" aria-label="Poseidon routing preview">
-    <header class="ps-header"><div><p class="eyebrow">ORCHESTRATION / DESIGN PREVIEW</p><h1>Poseidon<span>Give the work a direction.</span></h1><p>Match a task to a specialist, a model profile and a compute allowance.</p></div><span class="ps-emblem">${icon('poseidon',66)}</span></header>
+  const expanded = Array.isArray(state.expanded) ? state.expanded : [];
+  return `<section class="poseidon-view" aria-label="Poseidon coordination dashboard">
+    <header class="ps-header"><div><p class="eyebrow">THE COORDINATION LAYER</p><h1>Poseidon</h1><p>One point of direction. Four teams with distinct responsibilities.</p></div><span class="ps-emblem">${icon('poseidon', 52)}</span></header>
     <div class="ps-controls">
-      <label class="ps-field" for="route-task"><span class="eyebrow">TASK</span><select id="route-task" data-route-field="task">${Object.entries(tasks).map(([key,task])=>`<option value="${key}" ${plan.task===key?'selected':''}>${task.label}</option>`).join('')}</select></label>
-      <fieldset class="ps-priorities"><legend class="eyebrow">PRIORITY</legend><div>${Object.entries(priorities).map(([key,label])=>`<button type="button" data-route-priority="${key}" aria-pressed="${plan.priority===key}">${label}</button>`).join('')}</div></fieldset>
-      <label class="ps-field" for="route-budget"><span class="eyebrow">COMPUTE</span><select id="route-budget" data-route-field="budget">${Object.entries(budgets).map(([key,label])=>`<option value="${key}" ${plan.budget===key?'selected':''}>${label}</option>`).join('')}</select></label>
+      <label class="ps-field" for="route-task"><span class="eyebrow">EXAMPLE TASK</span><select id="route-task" data-route-field="task">${Object.entries(tasks).map(([key, task]) => `<option value="${key}" ${plan.task === key ? 'selected' : ''}>${task.label}</option>`).join('')}</select></label>
+      <fieldset class="ps-priorities"><legend class="eyebrow">PRIORITY</legend><div>${Object.entries(priorities).map(([key, label]) => `<button type="button" data-route-priority="${key}" aria-pressed="${plan.priority === key}">${label}</button>`).join('')}</div></fieldset>
+      <label class="ps-field" for="route-budget"><span class="eyebrow">COMPUTE</span><select id="route-budget" data-route-field="budget">${Object.entries(budgets).map(([key, label]) => `<option value="${key}" ${plan.budget === key ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
     </div>
-    <div class="ps-diagram-section"><div class="ps-map-caption"><span class="eyebrow">${state.previewed?'PROPOSED ROUTE':'ROUTE CONFIGURATION'}</span><span class="ps-static-note"><i></i>Illustrative rules</span></div>
-      <div class="ps-route-map" aria-label="${tasks[plan.task].label} is routed through Poseidon to the ${plan.role.toLowerCase()} specialist">
-        <div class="ps-source ps-box"><span class="ps-node-icon">${icon('document',25)}</span><p class="eyebrow">THE TASK</p><strong>${tasks[plan.task].label}</strong><small>Context + intended outcome</small></div>
-        <div class="ps-hub ps-box"><span class="ps-node-icon">${icon('poseidon',42)}</span><p class="eyebrow">COORDINATOR</p><strong>Poseidon</strong><small>Role · model · allowance</small><span class="ps-hub-tag">${priorities[plan.priority]} / ${plan.budget}</span></div>
-        <div class="ps-specialists ps-selected-${plan.task}">${Object.entries(tasks).map(([key,task])=>`<div class="ps-lane ${plan.task===key?'selected':''}" ${plan.task===key?'aria-current="true"':''}><span class="ps-species">${icon(task.icon,39)}</span><div><strong>${task.role}</strong><small>${task.purpose}</small></div><span class="ps-route-indicator" aria-label="${plan.task===key?'Selected route':'Available specialist'}">${plan.task===key?icon('check',13):''}</span></div>`).join('')}</div>
+    <div class="ps-diagram-section"><div class="ps-map-caption"><span class="eyebrow">${state.previewed ? 'PROPOSED ALLOCATION' : 'EXPLORE THE TEAMS'}</span><span class="ps-static-note"><i></i>Illustrative assignment · no agents running</span></div>
+      <div class="ps-hierarchy" aria-label="Poseidon coordinates Galene, Nereus, Proteus and Triton">
+        <div class="ps-command"><span class="ps-command-symbol">${icon('poseidon', 43)}</span><div><span class="eyebrow">OVERALL COORDINATION</span><h2>Poseidon</h2><p>Tasks · models · compute</p></div><span class="ps-command-port" aria-hidden="true"></span></div>
+        <div class="ps-teams"><svg class="ps-branches" viewBox="0 0 1000 52" preserveAspectRatio="none" aria-hidden="true">${coordinators.map((coordinator, index) => `<path class="${plan.coordinatorIds.includes(coordinator.id) ? 'allocated' : ''}" d="M500 0V24H${125 + index * 250}V52"/>`).join('')}</svg>${[0, 2].map(start => `<div class="ps-team-pair">${coordinators.slice(start, start + 2).map(coordinator => renderCoordinator(coordinator, plan, expanded)).join('')}</div>`).join('')}</div>
       </div>
-      <div class="ps-route-summary" aria-live="polite"><div><span class="eyebrow">${state.previewed?'RECOMMENDATION':'PREVIEW SELECTION'}</span><p>${plan.recommendationLabel}<span> / </span>${plan.profile}</p><small>${plan.allocation}</small></div><button class="primary-button" type="button" data-action="route-preview">${icon('branch',16)}${state.previewed?'Preview again':'Preview route'}</button></div>
-      ${state.previewed?`<p class="ps-route-reason"><span class="eyebrow">WHY THIS ROUTE</span>${plan.reason}</p>`:''}
+      <div class="ps-route-summary"><div><p class="eyebrow">ALLOCATION PROFILE</p><p>${plan.profile}</p><small>${plan.allocation}</small></div><button class="primary-button" type="button" data-action="route-preview">${icon('branch', 16)}${state.previewed ? 'Preview again' : 'Preview handover'}</button></div>
+      ${state.previewed ? `<section class="ps-handover" aria-label="Proposed handover" aria-live="polite"><p class="eyebrow">HANDOVER FOR THIS TASK</p><ol>${plan.coordinatorIds.map((id, index) => { const team = getCoordinator(id); return `<li><span class="ps-step-number">${String(index + 1).padStart(2, '0')}</span><button data-coordinator="${id}">${icon(team.icon, 19)}${team.name}</button>${index < plan.coordinatorIds.length - 1 ? icon('arrowRight', 15) : ''}</li>`; }).join('')}</ol><p class="ps-route-reason">${plan.reason}</p></section>` : ''}
     </div>
-    <section class="ps-learning" aria-label="Planned routing feedback"><div class="ps-learning-heading"><h2>A route that can be evaluated.</h2><span class="ps-planned">Planned</span></div><p>A future implementation could use assessed outcomes to inform the next allocation.</p><ol class="ps-feedback">${[['document','Outcome'],['shield','Evaluation'],['database','Routing memory'],['branch','Next allocation']].map(([shape,label],i)=>`<li>${icon(shape,17)}<span>${label}</span>${i<3?icon('arrowRight',14):''}</li>`).join('')}</ol><p class="ps-learning-note">This preview uses fixed rules. It does not execute agents, measure quality or learn from these selections.</p></section>
+    <section class="ps-learning" aria-label="Planned learning from evaluated outcomes"><div class="ps-learning-heading"><h2>Learning from the work</h2><span class="ps-planned">Planned capability</span></div><ol>
+      <li><span class="ps-learning-number">01</span><div><h3>Evaluate outcomes</h3><p>Assess result quality and incorporate human review.</p></div></li>
+      <li><span class="ps-learning-number">02</span><div><h3>Compare the resources</h3><p>Compare model cost and latency for comparable work.</p></div></li>
+      <li><span class="ps-learning-number">03</span><div><h3>Test revised allocations</h3><p>Test proposed allocations against a fixed route before adoption.</p></div></li>
+    </ol></section>
+    <footer class="ps-footnote">Poseidon assigns the work. Each team keeps its remit, permissions and review requirements.</footer>
   </section>`;
 }
 
 export function renderPoseidonInspector(state = {}) {
   const plan = getRoutePlan(state);
-  return `<aside class="inspector" aria-label="Poseidon routing inspector"><div class="inspector-heading"><span class="mono">ROUTING DETAILS</span><button class="icon-button" data-action="inspector" aria-label="Close inspector">${icon('close',14)}</button></div>
-    <div class="inspector-body"><div class="inspector-identity"><span class="inspector-symbol">${icon('poseidon',34)}</span><p class="eyebrow">${state.previewed?'PROPOSED ALLOCATION':'CONFIGURATION'}</p><h2>${state.previewed?plan.recommendationLabel:'Poseidon'}</h2></div>
-      <p class="inspector-description">${state.previewed?'A proposed route for this example task.':'Choose the task, priority and allowance, then preview the proposed route.'}</p>
-      <div class="inspector-block"><p class="eyebrow">MODEL PROFILE</p><p class="inspector-value">${plan.profile}</p><span class="field-note">A capability profile, not a connected model.</span></div>
+  return `<aside class="inspector" aria-label="Poseidon allocation inspector"><div class="inspector-heading"><span class="mono">ALLOCATION DETAILS</span><button class="icon-button" data-action="inspector" aria-label="Close inspector">${icon('close', 14)}</button></div>
+    <div class="inspector-body"><div class="inspector-identity"><span class="inspector-symbol">${icon('poseidon', 34)}</span><p class="eyebrow">${state.previewed ? 'PROPOSED HANDOVER' : 'CONFIGURATION'}</p><h2>${plan.label}</h2></div>
+      <p class="inspector-description">Poseidon assigns responsibilities and allowance. The teams carry out their own bounded roles.</p>
+      <div class="inspector-block"><p class="eyebrow">TEAMS IN ORDER</p>${plan.coordinatorIds.map(id => { const team = getCoordinator(id); return `<div class="input-line">${icon(team.icon, 18)}<span>${team.name} · ${escape(team.subtitle)}</span></div>`; }).join('')}</div>
       <div class="inspector-block"><p class="eyebrow">WHY THIS ROUTE</p><p class="inspector-value">${plan.reason}</p></div>
-      <div class="inspector-block"><p class="eyebrow">COMPUTE ALLOWANCE</p><p class="inspector-value">${plan.budgetLabel}</p><span class="field-note">${plan.allocation}. These are design choices, not measured costs.</span></div>
-      <div class="inspector-block"><p class="eyebrow">OPEN-MODEL DIRECTION</p><p class="inspector-value">Configure interchangeable open-weight models by capability. Evaluate them on the work before choosing profiles or considering specialist training.</p></div>
-      <div class="inspector-note"><span class="hollow-dot"></span><p>Design preview only.<br>No execution, trained router or model connection.</p></div>
+      <div class="inspector-block"><p class="eyebrow">MODEL & COMPUTE</p><p class="inspector-value">${plan.profile}</p><span class="field-note">${plan.budgetLabel}. ${plan.allocation}.</span></div>
+      <div class="inspector-block"><p class="eyebrow">AUTHORITY</p><p class="inspector-value">Assignment does not grant permission to change a system, publish a message or impersonate a person. Those decisions remain separately controlled.</p></div>
+      <div class="inspector-note"><span class="hollow-dot"></span><p>Fixed example routing.<br>No models, live systems or execution connected.</p></div>
     </div></aside>`;
 }

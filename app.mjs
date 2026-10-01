@@ -1,21 +1,20 @@
 import { icon } from './icons.mjs';
 import { flowNodes, renderWorkflow } from './workflow.mjs';
+import { coordinators, coreAgents, allAgents, getCoordinator, getAgent } from './fleet.mjs';
+import { renderCoordinator, renderCoordinatorInspector, renderFleet } from './team-view.mjs';
 import { renderPoseidon, renderPoseidonInspector } from './poseidon.mjs';
 
 const app = document.querySelector('#app');
 const escape = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const tabs = {
   poseidon:{name:'Poseidon',icon:'poseidon'},
+  ...Object.fromEntries(coordinators.map(team => [team.id, {name:team.name,icon:team.icon}])),
   workflow:{name:'Delivery review',icon:'branch'}, brief:{name:'Weekly brief',icon:'document'},
   notes:{name:'Working notes',icon:'code'}, agents:{name:'Agents',icon:'agent'}, sources:{name:'Sources',icon:'library'}, overview:{name:'Workspace',icon:'grid'}
 };
 const initialTab = Object.hasOwn(tabs, location.hash.slice(1)) ? location.hash.slice(1) : 'poseidon';
-const sectionFor = id => ['poseidon','agents','sources'].includes(id) ? id : 'work';
-const agents = [
-  {id:'research',name:'Research',icon:'fish',description:'Find the evidence. Connect the records. Keep the open questions visible.',task:'Read and reconcile selected sources.',access:'Read selected sources; write draft findings.'},
-  {id:'analysis',name:'Delivery analysis',icon:'squid',description:'Bring plans and delivery records into a view the team can examine.',task:'Compare progress, blockers and decisions.',access:'Read selected sources; write draft analysis.'},
-  {id:'review',name:'Review',icon:'turtle',description:'Check claims against their evidence and prepare the work for a person to review.',task:'Check that each claim has a source.',access:'Read drafts and sources; propose revisions.'}
-];
+const sectionFor = id => getCoordinator(id) ? 'poseidon' : ['poseidon','agents','sources'].includes(id) ? id : 'work';
+const agents = allAgents;
 const sources = [
   {name:'Delivery register',type:'Table',icon:'database',detail:'Example project records',body:'Onboarding workstream\n\nThree actions complete.\nSource-data import blocked: field mapping awaiting agreement.\nDelivery date: to be confirmed.'},
   {name:'Working notes',type:'Document',icon:'document',detail:'Latest project review',body:'Test the import once the mapping is agreed.\n\nThe team will revisit the delivery date after that test.\nThe current record does not support a revised date.'},
@@ -23,10 +22,11 @@ const sources = [
 ];
 const state = {
   active:initialTab,open:[...new Set([initialTab,'workflow','brief'])],sidebar:innerWidth>760,inspector:innerWidth>=1380,activity:false,
-  poseidon:{task:'research',priority:'balanced',budget:'standard',previewed:false},
+  poseidon:{task:'incident',priority:'balanced',budget:'standard',previewed:false,expanded:[]},
+  fleetFilter:'all',
   selectedNode:'research',section:sectionFor(initialTab),project:'Operations',zoom:1,selectedAgent:'research',selectedSource:0,
   notes:'# Working notes\n\n## The question\nWhat has changed in delivery this week?\n\n## Sources to check\n- Delivery register\n- Working notes\n- Decision log\n\n## Open decisions\nConfirm who owns the source-data mapping.\n',
-  instructions:{research:'Read only the selected sources. Attach evidence to each finding. Keep missing information and contradictory records visible.',analysis:'Compare the delivery records and plans. Identify changes, blockers and open decisions. Attach the source behind each observation.',review:'Check each claim against its source. Flag unsupported conclusions and unresolved questions for human review.'},
+  instructions:Object.fromEntries(agents.map(agent=>[agent.id,agent.instructions])),
   activityTab:'activity',preview:false,previewStep:0,approved:false,dirty:false,customTabs:{},density:'Comfortable'
 };
 try { const saved=JSON.parse(localStorage.getItem('koralli-workspace-layout')||'null');if(saved){if(['Comfortable','Compact'].includes(saved.density))state.density=saved.density;} } catch {}
@@ -42,9 +42,9 @@ function closeTab(id){const wasActive=state.active===id;const at=state.open.inde
 function renderSidebar(){
   return `<aside class="explorer" aria-label="Workspace explorer"><div class="explorer-heading"><span class="mono">EXPLORER</span>${button('plus','New work','new')}</div>
     <button class="workspace-picker" data-action="switch-project">${icon('layers',19)}<span>${state.project}<small>Personal workspace</small></span>${icon('chevronDown',14)}</button>
-    <div class="explorer-group"><div class="explorer-group-label mono">ORCHESTRATION</div><button class="tree-item ${state.active==='poseidon'?'active':''}" data-tab="poseidon">${icon('poseidon',19)}<span>Poseidon</span><i class="hollow-dot"></i></button></div>
+    <div class="explorer-group"><div class="explorer-group-label mono">ORCHESTRATION</div><button class="tree-item ${state.active==='poseidon'?'active':''}" data-tab="poseidon">${icon('poseidon',19)}<span>Poseidon</span><i class="hollow-dot"></i></button><div class="tree-children coordinator-tree">${coordinators.map(team=>`<button class="tree-item ${state.active===team.id?'active':''}" data-tab="${team.id}" title="${team.subtitle}">${icon(team.icon,18)}<span>${team.name}</span><small>04</small></button>`).join('')}</div></div>
     <div class="explorer-group"><div class="explorer-group-label mono">WORKSPACES <span>01</span></div><button class="tree-parent selected" data-tab="workflow">${icon('chevronDown',12)}${icon('folder',16)}<span>Delivery review</span></button><div class="tree-children">${[['workflow','branch','Workflow'],['brief','document','Weekly brief'],['notes','code','Working notes']].map(([id,shape,name])=>`<button class="tree-item ${state.active===id?'active':''}" data-tab="${id}">${icon(shape,16)}<span>${name}</span>${id==='notes'&&state.dirty?'<i class="unsaved-dot"></i>':''}</button>`).join('')}</div></div>
-    <div class="explorer-group"><div class="explorer-group-label mono">AGENTS <button data-tab="agents" aria-label="Browse agents">${icon('arrowRight',13)}</button></div>${agents.map(a=>`<button class="tree-item" data-agent="${a.id}">${icon(a.icon,17)}<span>${a.name}</span><i class="hollow-dot"></i></button>`).join('')}</div>
+    <div class="explorer-group"><div class="explorer-group-label mono">SPECIALISTS <button data-tab="agents" aria-label="Browse agents">${icon('arrowRight',13)}</button></div>${coreAgents.map(a=>`<button class="tree-item" data-agent="${a.id}">${icon(a.icon,17)}<span>${a.name}</span><i class="hollow-dot"></i></button>`).join('')}</div>
     <div class="explorer-group"><div class="explorer-group-label mono">CONTEXT <button data-tab="sources" aria-label="Browse sources">${icon('plus',13)}</button></div>${sources.map((source,i)=>`<button class="tree-item" data-source="${i}">${icon(source.icon,16)}<span>${source.name}</span></button>`).join('')}</div>
     <div class="explorer-bottom"><img class="explorer-coral" src="./assets/coral-network.svg" width="170" height="79" alt=""><p>Different strengths.<br>Shared purpose.</p><span class="mono">KORALLI WORKSPACE / 0.1</span></div></aside>`;
 }
@@ -53,17 +53,18 @@ function renderBrief(){return `<article class="document-view"><div class="docume
     <section class="document-section"><span class="section-number mono">02</span><div><h2>What remains open</h2><p>The team plans to test the import after the mapping is agreed. The records do not establish a revised delivery date. <button class="reference" data-source="1" aria-label="Open working notes source">[2]</button></p></div></section>
     <section class="document-section"><span class="section-number mono coral">03</span><div><h2>A decision for the team</h2><p>Confirm who owns the mapping decision. This is currently unassigned in the decision log. <button class="reference" data-source="2" aria-label="Open decision log source">[3]</button></p></div></section>
     <div class="document-actions"><button class="primary-button" data-action="approve" ${state.approved?'disabled':''}>${icon('check',15)}${state.approved?'Draft approved':'Approve draft'}</button><button class="secondary-button" data-tab="notes">Add a review note ${icon('arrowRight',14)}</button></div></article>`;}
-function renderAgents(){return `<section class="library-view"><div class="view-heading"><p class="eyebrow">AGENT LIBRARY</p><h1>Specialists around the work.</h1><p>Give each agent a clear role, useful tools and a defined scope.</p></div><div class="library-section-label mono"><span>NAME / RESPONSIBILITY</span><span>CONFIGURATION</span></div>${agents.map((agent,i)=>`<button class="agent-row ${state.selectedAgent===agent.id?'selected':''}" data-agent="${agent.id}"><span class="agent-drawing">${icon(agent.icon,38)}</span><span><span class="mono agent-index">0${i+1} / AGENT TEMPLATE</span><strong>${agent.name}</strong><span class="row-description">${agent.description}</span></span><span class="agent-row-tail">Draft ${icon('arrowRight',17)}</span></button>`).join('')}<p class="view-note">Select an agent to edit its instructions and inspect its access.</p></section>`;}
+function renderAgents(){return renderFleet(state.selectedAgent,state.fleetFilter);}
 function renderSources(){const source=sources[state.selectedSource];return `<section class="library-view"><div class="view-heading"><p class="eyebrow">WORKSPACE CONTEXT</p><h1>Start with what you know.</h1><p>The records, documents and definitions available to this work.</p></div><div class="source-table"><div class="source-table-head mono"><span>SOURCE</span><span>TYPE</span><span>ACCESS</span></div>${sources.map((item,i)=>`<button class="source-row ${state.selectedSource===i?'selected':''}" data-source="${i}"><span>${icon(item.icon,19)}<span>${item.name}<small>${item.detail}</small></span></span><span>${item.type}</span><span>Read only</span></button>`).join('')}</div><div class="source-preview"><p class="eyebrow">SELECTED SOURCE / EXAMPLE CONTENT</p><h2>${source.name}</h2><pre>${escape(source.body)}</pre></div></section>`;}
 function renderNotes(){return `<section class="notes-view"><div class="notes-toolbar"><span class="mono">MARKDOWN</span><span data-note-status>${state.dirty?'Edited in this session':'Example working notes'}</span><button class="text-button" data-action="export">${icon('external',14)} Export</button></div><label class="sr-only" for="notes-editor">Working notes</label><textarea id="notes-editor" spellcheck="false">${escape(state.notes)}</textarea><footer class="editor-footer"><span>Plain text · editable locally</span><span data-word-count>${state.notes.trim().split(/\s+/).length} words</span></footer></section>`;}
 function renderOverview(){return `<section class="overview-view"><p class="eyebrow">KORALLI / ${state.project.toUpperCase()}</p><h1>A place for<br>work to take shape.</h1><p>Bring a question, assemble the context and give the work a direction.</p><button class="primary-button" data-action="new">${icon('plus',16)} New work</button><div class="overview-recent"><p class="eyebrow">CONTINUE WORKING</p><button data-tab="workflow">${icon('branch',23)}<span><strong>Delivery review</strong><small>Research, analysis and human review</small></span>${icon('arrowRight',19)}</button><button data-tab="brief">${icon('document',23)}<span><strong>Weekly brief</strong><small>Example document · draft</small></span>${icon('arrowRight',19)}</button></div></section>`;}
 function renderCustom(){const data=metadata(state.active);return `<section class="overview-view"><p class="eyebrow">NEW WORKSPACE</p><h1>${escape(data.name)}</h1><p>Your workspace is ready. Start from the example workflow to explore how the pieces fit together.</p><button class="primary-button" data-tab="workflow">${icon('branch',17)} Open workflow template</button></section>`;}
-function renderContent(){switch(state.active){case'poseidon':return renderPoseidon(state.poseidon);case'workflow':return renderWorkflow(state);case'brief':return renderBrief();case'notes':return renderNotes();case'agents':return renderAgents();case'sources':return renderSources();case'overview':return renderOverview();default:return renderCustom();}}
+function renderContent(){if(getCoordinator(state.active))return renderCoordinator(state.active);switch(state.active){case'poseidon':return renderPoseidon(state.poseidon);case'workflow':return renderWorkflow(state);case'brief':return renderBrief();case'notes':return renderNotes();case'agents':return renderAgents();case'sources':return renderSources();case'overview':return renderOverview();default:return renderCustom();}}
 
 function renderInspector(){
   if(state.active==='poseidon')return renderPoseidonInspector(state.poseidon);
+  if(getCoordinator(state.active))return renderCoordinatorInspector(state.active);
   if(!['workflow','agents','sources','brief'].includes(state.active))return `<aside class="inspector" aria-label="Inspector"><div class="inspector-heading"><span class="mono">WORKSPACE DETAILS</span>${button('close','Close inspector','inspector')}</div><div class="inspector-body"><div class="inspector-identity"><span class="inspector-symbol">${icon(state.active==='notes'?'code':'folder',32)}</span><p class="eyebrow">${state.active==='notes'?'WORKING DOCUMENT':'LOCAL WORKSPACE'}</p><h2>${escape(metadata(state.active).name)}</h2></div><p class="inspector-description">${state.active==='notes'?'Keep questions, observations and decisions alongside the work. Export your notes to keep a copy.':'Bring the context, agents and outputs together around a question.'}</p><div class="inspector-block"><p class="eyebrow">STORAGE</p><p class="inspector-value">Edits are held in this preview session. Reloading restores the example.</p></div><button class="inspector-link" data-tab="workflow">Open delivery workflow ${icon('arrowRight',15)}</button><div class="inspector-note"><span class="hollow-dot"></span><p>Visual template.<br>No model or tools connected.</p></div></div></aside>`;
-  const selectedAgent=agents.find(a=>a.id===state.selectedAgent);
+  const selectedAgent=getAgent(state.selectedAgent)||coreAgents[0];
   const selected=flowNodes.find(n=>n.id===state.selectedNode);
   const isAgent=state.active==='agents';
   const isSource=state.active==='sources';
@@ -71,6 +72,7 @@ function renderInspector(){
   const shape=isAgent?selectedAgent.icon:isSource?sources[state.selectedSource].icon:state.active==='brief'?'document':selected.icon;
   return `<aside class="inspector" aria-label="Inspector"><div class="inspector-heading"><span class="mono">${isAgent?'AGENT SETTINGS':isSource?'SOURCE DETAILS':'INSPECTOR'}</span>${button('close','Close inspector','inspector')}</div><div class="inspector-body"><div class="inspector-identity"><span class="inspector-symbol">${icon(shape,32)}</span><p class="eyebrow">${isAgent?'AGENT TEMPLATE':isSource?'WORKSPACE CONTEXT':state.active==='brief'?'REVIEW':'SELECTED STEP'}</p><h2>${title}</h2></div>
     <p class="inspector-description">${isAgent?selectedAgent.description:isSource?'Example material selected for this workflow. Original records stay unchanged.':state.active==='brief'?'Review the brief alongside its evidence. Keep unresolved questions visible.':selected.description}</p>
+    ${isAgent?`<div class="inspector-block"><p class="eyebrow">TEAM / MODEL PROFILE</p><button class="inspector-link" data-tab="${selectedAgent.coordinatorId}">${getCoordinator(selectedAgent.coordinatorId)?.name||'Poseidon'} ${icon('arrowRight',14)}</button><p class="inspector-value">${selectedAgent.profile}</p><span class="field-note">Example capability profile. No model connected.</span></div>`:''}
     <div class="inspector-block"><p class="eyebrow">${isAgent?'RESPONSIBILITY':'INPUTS'}</p>${isAgent?`<p class="inspector-value">${selectedAgent.task}</p>`:(isSource?['Sample content only']:(state.active==='brief'?['Draft brief','Three source references']:selected.inputs)).map(input=>`<div class="input-line">${icon('link',14)}<span>${input}</span></div>`).join('')}</div>
     ${isAgent?`<div class="inspector-block"><label class="eyebrow" for="agent-instructions">INSTRUCTIONS</label><textarea id="agent-instructions">${escape(state.instructions[state.selectedAgent])}</textarea><span class="field-note" data-instruction-status>Editable template instructions</span></div>`:`<div class="inspector-block"><p class="eyebrow">OUTPUT</p><p class="inspector-value">${isSource?'Source material with context':state.active==='brief'?'Reviewed weekly brief':selected.output}</p></div>`}
     <div class="inspector-block"><p class="eyebrow">ACCESS</p><p class="access-line">${icon('shield',16)} ${isAgent?selectedAgent.access:isSource?'Read only':state.active==='brief'?'Review and approve this draft':selected.access}</p></div>
@@ -102,6 +104,7 @@ function startPreview(){
 }
 const commands=[
   {name:'Open Poseidon orchestrator',hint:'Routing',icon:'poseidon',run:()=>openTab('poseidon')},
+  ...coordinators.map(team=>({name:`Open ${team.name} · ${team.subtitle}`,hint:'Coordinator',icon:team.icon,run:()=>openTab(team.id)})),
   {name:'Open delivery workflow',hint:'Workspace',icon:'branch',run:()=>openTab('workflow')},
   {name:'Open weekly brief',hint:'Document',icon:'document',run:()=>openTab('brief')},
   {name:'Open working notes',hint:'Editor',icon:'code',run:()=>openTab('notes')},
@@ -119,19 +122,23 @@ function exportDocument(){const text=state.active==='notes'?state.notes:'# Weekl
 function action(name){switch(name){case'route-preview':state.poseidon.previewed=true;render();app.querySelector('[data-action="route-preview"]')?.focus();notify('Illustrative route prepared. No model was called.');break;case'sidebar':state.sidebar=!state.sidebar;render();break;case'inspector':state.inspector=!state.inspector;render();break;case'activity':state.activity=!state.activity;render();break;case'command':openCommands();break;case'new':openNew();break;case'settings':openSettings();break;case'preview':startPreview();break;case'zoom-in':state.zoom=Math.min(1.25,Math.round((state.zoom+.1)*100)/100);render();break;case'zoom-out':state.zoom=Math.max(.65,Math.round((state.zoom-.1)*100)/100);render();break;case'fit':state.zoom=Math.min(1,Math.max(.65,((document.querySelector('.wf-canvas')?.clientWidth||830)-30)/800));render();break;case'approve':state.approved=true;render();notify('Example draft approved. Nothing has been shared.');break;case'export':exportDocument();break;case'switch-project':state.project=state.project==='Operations'?'Research':'Operations';notify(`Switched to ${state.project.toLowerCase()} workspace.`);render();break;}}
 
 app.addEventListener('click',event=>{
-  const element=event.target.closest('[data-action],[data-tab],[data-close-tab],[data-node],[data-agent],[data-source],[data-log],[data-route-priority]');if(!element)return;event.preventDefault();
+  const element=event.target.closest('[data-action],[data-tab],[data-close-tab],[data-node],[data-agent],[data-source],[data-log],[data-route-priority],[data-coordinator],[data-team-toggle],[data-fleet-filter],[data-scenario]');if(!element)return;event.preventDefault();
   if(element.dataset.routePriority){if(!['balanced','speed','depth'].includes(element.dataset.routePriority))return;state.poseidon.priority=element.dataset.routePriority;state.poseidon.previewed=false;render();app.querySelector(`[data-route-priority="${state.poseidon.priority}"]`)?.focus();}
+  else if(element.dataset.coordinator){if(getCoordinator(element.dataset.coordinator))openTab(element.dataset.coordinator);}
+  else if(element.dataset.teamToggle){const id=element.dataset.teamToggle;if(!getCoordinator(id))return;state.poseidon.expanded=state.poseidon.expanded.includes(id)?state.poseidon.expanded.filter(item=>item!==id):[...state.poseidon.expanded,id];render();app.querySelector(`[data-team-toggle="${id}"]`)?.focus({preventScroll:true});}
+  else if(element.dataset.fleetFilter){const id=element.dataset.fleetFilter;if(!['all','poseidon',...coordinators.map(team=>team.id)].includes(id))return;state.fleetFilter=id;render();app.querySelector(`[data-fleet-filter="${id}"]`)?.focus({preventScroll:true});}
+  else if(element.dataset.scenario){const id=element.dataset.scenario;if(!['incident','change','simulation','briefing'].includes(id))return;state.poseidon.task=id;state.poseidon.previewed=true;openTab('poseidon');}
   else if(element.dataset.action)action(element.dataset.action);
   else if(element.dataset.tab)openTab(element.dataset.tab);
   else if(element.dataset.closeTab)closeTab(element.dataset.closeTab);
   else if(element.dataset.node){state.selectedNode=element.dataset.node;state.inspector=true;render();}
-  else if(element.dataset.agent){state.selectedAgent=element.dataset.agent;state.inspector=true;openTab('agents');}
+  else if(element.dataset.agent){const agent=getAgent(element.dataset.agent);if(!agent)return;state.selectedAgent=agent.id;state.fleetFilter=agent.coordinatorId;state.inspector=true;openTab('agents');}
   else if(element.dataset.source!==undefined){state.selectedSource=Number(element.dataset.source);openTab('sources');}
   else if(element.dataset.log){state.activityTab=element.dataset.log;render();}
 });
 app.addEventListener('change',event=>{
   const field=event.target.dataset.routeField;
-  const values={task:['research','analysis','review'],budget:['small','standard','extended']};
+  const values={task:['incident','change','simulation','briefing'],budget:['small','standard','extended']};
   if(!values[field]?.includes(event.target.value))return;
   state.poseidon[field]=event.target.value;state.poseidon.previewed=false;render();
   app.querySelector(`[data-route-field="${field}"]`)?.focus();

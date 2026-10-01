@@ -24,8 +24,9 @@ This checks JavaScript syntax. Browser interaction and responsive layout checks 
 ## What works
 
 - Explorer, tabs, workflow canvas, inspector and activity drawer
-- Poseidon routing preview with task, priority and compute-allowance controls
-- Fish, squid and turtle identities for research, analysis and review specialists
+- Poseidon coordinating four teams, with task, priority and compute-allowance controls
+- Expandable specialist teams, coordinator detail views and ordered handover previews
+- Custom coordinator symbols and marine icons for sixteen specialists, plus the original research, analysis and review agents
 - Selectable workflow steps, canvas zoom and a local sequence preview
 - Agent library with independently editable instructions
 - Source inspection and references from an example brief
@@ -35,7 +36,16 @@ This checks JavaScript syntax. Browser interaction and responsive layout checks 
 
 All project content is fictional. The sequence preview highlights steps; it does not run agents. There are no model calls, accounts, uploads or connections to company systems.
 
-Poseidon's route preview uses illustrative rules. Its model profiles are placeholders, not measured recommendations. The feedback loop shows the planned learning system; no performance history or learned policy exists yet. Link directly to it with `#poseidon` or open the delivery example with `#workflow`.
+Poseidon's route preview uses illustrative rules. Its model profiles describe proposed capabilities, not measured recommendations. No performance history or learned policy exists yet. Link directly to it with `#poseidon` or open the delivery example with `#workflow`.
+
+| Coordinator | Responsibility | Specialist team | Direct link |
+| --- | --- | --- | --- |
+| Galene | Network uptime and recovery planning | The Halcyons | `#galene` |
+| Nereus | System stability and safe change | The Nereids | `#nereus` |
+| Proteus | Labelled roles, scenarios and authorised representations | The Forms | `#proteus` |
+| Triton | Briefings, transcription, voice and channel formatting | The Heralds | `#triton` |
+
+Each coordinator has four specialist templates. Task previews select the relevant coordinators; resource settings do not remove review requirements. The team names are brand metaphors, not claims of literal mythological relationships. Halcyons refer to calm seas, while Heralds draws on Triton's role as Poseidon's messenger.
 
 Notes, workspace tabs and agent instructions last until the page is reloaded. Export notes to retain them. Only the spacing preference is stored in this browser.
 
@@ -56,7 +66,9 @@ Use Command on macOS or Control on Windows/Linux:
 - `app.mjs`: shell, example content and local interaction state
 - `styles.css`: visual system and responsive app layout
 - `workflow.mjs`, `workflow.css`: workflow diagram and its layout
-- `poseidon.mjs`, `poseidon.css`: routing preview, model profiles and planned learning loop
+- `poseidon.mjs`, `poseidon.css`: coordination map, model profiles and handover preview
+- `fleet.mjs`: coordinator and specialist definitions, remits and draft instructions
+- `team-view.mjs`, `team-view.css`: coordinator details and grouped agent library
 - `icons.mjs`: custom thin-line SVG icon family
 - `assets/`: local fonts, Koralli mark and coral network illustration
 - `server.mjs`: small development server using Node's standard library
