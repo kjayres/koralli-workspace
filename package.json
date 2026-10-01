@@ -1,0 +1,10 @@
+{
+  "name": "koralli-workspace-template",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "node server.mjs",
+    "check": "node --check app.mjs && node --check icons.mjs && node --check workflow.mjs && node --check server.mjs"
+  }
+}
