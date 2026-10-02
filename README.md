@@ -1,6 +1,6 @@
-# Koralli Workspace
+# Yfalos
 
-A standalone prototype for an internal agent workspace. It uses Koralli's cream palette, cobalt line work, local fonts and coral mark. Nereus now has a working evidence, review and saving flow, with an unconfigured model connector for later use.
+Yfalos is the working name for Koralli's internal agent workspace. Poseidon remains its overall coordinator. The prototype uses warm cream surfaces, rounded geometric headings and fine cobalt drawings. Nereus has a working evidence, review and saving flow, with an unconfigured model connector for later use.
 
 [Open the interactive demo](https://kjayres.github.io/koralli-workspace/).
 
@@ -103,9 +103,10 @@ Use Command on macOS or Control on Windows/Linux:
 ## Source files
 
 - `app.mjs`: shell, example content and local interaction state
-- `styles.css`: visual system and responsive app layout
+- `styles.css`: base visual system and responsive app layout
+- `assets/yfalos-theme.css`: final visual layer for Yfalos, loaded after the component styles
 - `workflow.mjs`, `workflow.css`: workflow diagram and its layout
-- `poseidon.mjs`, `poseidon.css`: coordination map, model profiles and handover preview
+- `poseidon.mjs`, `poseidon.css`: team allocation, model profiles and handover preview
 - `fleet.mjs`: coordinator and specialist definitions, remits and draft instructions
 - `team-view.mjs`, `team-view.css`: coordinator details and grouped agent library
 - `assessment-view.mjs`, `assessment.css`: evidence workspace, findings, source reader and review
@@ -114,7 +115,7 @@ Use Command on macOS or Control on Windows/Linux:
 - `nereus-service.mjs`: unconfigured single-request model adapter with cancellation and validated output
 - `tests/`: native Node tests with simulated model responses
 - `icons.mjs`: custom thin-line SVG icon family
-- `assets/`: local fonts, Koralli mark and coral network illustration
+- `assets/`: local fonts, Koralli mark and native SVG artwork
 - `server.mjs`: loopback-only development server and assessment API, using Node's standard library
 
 The project is independent of `new_site` and `old_site`. Changes here do not deploy either website.
@@ -122,6 +123,14 @@ The project is independent of `new_site` and `old_site`. Changes here do not dep
 ## Publishing
 
 The demo is hosted by GitHub Pages from the root of the `main` branch in `kjayres/koralli-workspace`. The `.nojekyll` file keeps the static files unchanged. Push reviewed changes to that repository to update the shareable demo. Local screenshots in `.preview/` are excluded from Git.
+
+## Visual direction
+
+Yfalos keeps the functional explorer, tabs, inspector and evidence workspace. Warm cream surfaces and rounded headings frame a compact allocation panel. Its four team rows keep responsibility, assignment and specialist controls aligned. The Poseidon symbol is unchanged.
+
+Primary and secondary action buttons reveal a few fine grains at their edges on hover. An actual click triggers one brief mesh-wave sweep, purely as input feedback. It does not indicate model execution or completion. Reduced-motion preferences disable these effects, and keyboard focus remains visible. There are no background illustrations or continuous decorative animation loops. The earlier shoreline study and its generator are kept locally in the ignored `.preview/yfalos-shore-study/` archive.
+
+Headings use a locally hosted [Manrope](https://github.com/googlefonts/manrope) Latin variable font, supplied through Google Fonts. Its SIL Open Font Licence is retained in `assets/manrope-OFL.txt`. Instrument Sans and IBM Plex Mono remain local for body text and small technical labels. The app makes no runtime font requests.
 
 ## Product direction
 

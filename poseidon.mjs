@@ -51,11 +51,13 @@ function renderCoordinator(coordinator, plan, expanded) {
   const allocated = plan.coordinatorIds.includes(coordinator.id);
   const isExpanded = expanded.includes(coordinator.id);
   return `<article class="ps-coordinator ${allocated ? 'allocated' : ''}">
-    <button class="ps-team-open" data-coordinator="${coordinator.id}" aria-label="Open ${coordinator.name}: ${escape(coordinator.subtitle)}"><span class="ps-team-symbol">${icon(coordinator.icon, 37)}</span><span class="ps-team-name">${coordinator.name}</span>${icon('arrowRight', 14)}</button>
-    <p class="ps-responsibility">${escape(coordinator.subtitle)}</p>
-    <p class="ps-team-status"><i></i>${allocated ? 'Included in this route' : 'Available when needed'}</p>
-    <button class="ps-team-toggle" data-team-toggle="${coordinator.id}" aria-expanded="${isExpanded}" aria-controls="ps-team-${coordinator.id}"><span>${coordinator.specialists.length} specialists</span>${icon('chevronDown', 13)}</button>
-    <div class="ps-workers" id="ps-team-${coordinator.id}" ${isExpanded ? '' : 'hidden'}><p class="eyebrow">${escape(coordinator.teamName)}</p>${coordinator.specialists.map(specialist => `<button data-agent="${specialist.id}" class="ps-worker">${icon(specialist.icon, 19)}<span>${escape(specialist.name)}</span>${icon('chevron', 11)}</button>`).join('')}</div>
+    <div class="ps-team-row">
+      <button class="ps-team-open" data-coordinator="${coordinator.id}" aria-label="Open ${coordinator.name}: ${escape(coordinator.subtitle)}"><span class="ps-team-symbol">${icon(coordinator.icon, 28)}</span><span class="ps-team-name">${coordinator.name}</span>${icon('arrowRight', 13)}</button>
+      <p class="ps-responsibility">${escape(coordinator.subtitle)}</p>
+      <p class="ps-team-status"><i></i>${allocated ? 'Included' : 'Available'}</p>
+      <button class="ps-team-toggle" data-team-toggle="${coordinator.id}" aria-expanded="${isExpanded}" aria-controls="ps-team-${coordinator.id}"><span>${coordinator.specialists.length} specialists</span>${icon('chevronDown', 13)}</button>
+    </div>
+    <div class="ps-workers" id="ps-team-${coordinator.id}" ${isExpanded ? '' : 'hidden'}><p class="eyebrow">${escape(coordinator.teamName)}</p><div class="ps-worker-list">${coordinator.specialists.map(specialist => `<button data-agent="${specialist.id}" class="ps-worker">${icon(specialist.icon, 19)}<span>${escape(specialist.name)}</span>${icon('chevron', 11)}</button>`).join('')}</div></div>
   </article>`;
 }
 
@@ -63,16 +65,17 @@ export function renderPoseidon(state = {}) {
   const plan = getRoutePlan(state);
   const expanded = Array.isArray(state.expanded) ? state.expanded : [];
   return `<section class="poseidon-view" aria-label="Poseidon coordination dashboard">
-    <header class="ps-header"><div><p class="eyebrow">THE COORDINATION LAYER</p><h1>Poseidon</h1><p>One point of direction. Four teams with distinct responsibilities.</p></div><span class="ps-emblem">${icon('poseidon', 52)}</span></header>
+    <header class="ps-header"><div><p class="eyebrow">THE COORDINATION LAYER</p><h1>Poseidon</h1><p>Assign the work, choose the resources and inspect each team.</p></div><span class="ps-emblem">${icon('poseidon', 52)}</span></header>
     <div class="ps-controls">
       <label class="ps-field" for="route-task"><span class="eyebrow">EXAMPLE TASK</span><select id="route-task" data-route-field="task">${Object.entries(tasks).map(([key, task]) => `<option value="${key}" ${plan.task === key ? 'selected' : ''}>${task.label}</option>`).join('')}</select></label>
       <fieldset class="ps-priorities"><legend class="eyebrow">PRIORITY</legend><div>${Object.entries(priorities).map(([key, label]) => `<button type="button" data-route-priority="${key}" aria-pressed="${plan.priority === key}">${label}</button>`).join('')}</div></fieldset>
       <label class="ps-field" for="route-budget"><span class="eyebrow">COMPUTE</span><select id="route-budget" data-route-field="budget">${Object.entries(budgets).map(([key, label]) => `<option value="${key}" ${plan.budget === key ? 'selected' : ''}>${label}</option>`).join('')}</select></label>
     </div>
-    <div class="ps-diagram-section"><div class="ps-map-caption"><span class="eyebrow">${state.previewed ? 'PROPOSED ALLOCATION' : 'EXPLORE THE TEAMS'}</span><span class="ps-static-note"><i></i>Illustrative assignment · no agents running</span></div>
-      <div class="ps-hierarchy" aria-label="Poseidon coordinates Galene, Nereus, Proteus and Triton">
-        <div class="ps-command"><span class="ps-command-symbol">${icon('poseidon', 43)}</span><div><span class="eyebrow">OVERALL COORDINATION</span><h2>Poseidon</h2><p>Tasks · models · compute</p></div><span class="ps-command-port" aria-hidden="true"></span></div>
-        <div class="ps-teams"><svg class="ps-branches" viewBox="0 0 1000 52" preserveAspectRatio="none" aria-hidden="true">${coordinators.map((coordinator, index) => `<path class="${plan.coordinatorIds.includes(coordinator.id) ? 'allocated' : ''}" d="M500 0V24H${125 + index * 250}V52"/>`).join('')}</svg>${[0, 2].map(start => `<div class="ps-team-pair">${coordinators.slice(start, start + 2).map(coordinator => renderCoordinator(coordinator, plan, expanded)).join('')}</div>`).join('')}</div>
+    <div class="ps-diagram-section"><div class="ps-map-caption"><span class="eyebrow">${state.previewed ? 'PROPOSED ALLOCATION' : 'TEAM ALLOCATION'}</span><span class="ps-static-note"><i></i>Illustrative assignment · no agents running</span></div>
+      <div class="ps-hierarchy" aria-label="Poseidon team allocation">
+        <div class="ps-command"><span class="ps-command-symbol">${icon('poseidon', 25)}</span><div><h2>Poseidon</h2><p>Task assignment · model profiles · compute</p></div><span class="ps-command-count">${plan.coordinatorIds.length} of ${coordinators.length} teams included</span></div>
+        <div class="ps-team-columns" aria-hidden="true"><span>Team</span><span>Responsibility</span><span>Assignment</span><span>Specialists</span></div>
+        <div class="ps-teams">${coordinators.map(coordinator => renderCoordinator(coordinator, plan, expanded)).join('')}</div>
       </div>
       <div class="ps-route-summary"><div><p class="eyebrow">ALLOCATION PROFILE</p><p>${plan.profile}</p><small>${plan.allocation}</small></div><button class="primary-button" type="button" data-action="route-preview">${icon('branch', 16)}${state.previewed ? 'Preview again' : 'Preview handover'}</button></div>
       ${state.previewed ? `<section class="ps-handover" aria-label="Proposed handover" aria-live="polite"><p class="eyebrow">HANDOVER FOR THIS TASK</p><ol>${plan.coordinatorIds.map((id, index) => { const team = getCoordinator(id); return `<li><span class="ps-step-number">${String(index + 1).padStart(2, '0')}</span><button data-coordinator="${id}">${icon(team.icon, 19)}${team.name}</button>${index < plan.coordinatorIds.length - 1 ? icon('arrowRight', 15) : ''}</li>`; }).join('')}</ol><p class="ps-route-reason">${plan.reason}</p></section>` : ''}
