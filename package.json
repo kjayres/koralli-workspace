@@ -2,9 +2,12 @@
   "name": "koralli-workspace-template",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "node server.mjs",
-    "check": "node --check app.mjs && node --check icons.mjs && node --check workflow.mjs && node --check poseidon.mjs && node --check fleet.mjs && node --check team-view.mjs && node --check server.mjs"
+    "check": "node --check app.mjs && node --check icons.mjs && node --check workflow.mjs && node --check poseidon.mjs && node --check fleet.mjs && node --check team-view.mjs && node --check assessment-core.mjs && node --check assessment-example.mjs && node --check assessment-view.mjs && node --check assessment-client.mjs && node --check assessment-store.mjs && node --check nereus-service.mjs && node --check server.mjs",
+    "test": "node --test tests/*.test.mjs"
   }
 }

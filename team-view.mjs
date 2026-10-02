@@ -19,7 +19,7 @@ export function renderCoordinator(id) {
     <header class="team-header">
       <div class="team-topline"><button type="button" class="text-button team-back" data-tab="poseidon">${icon('arrowRight', 14)} Poseidon</button><span class="eyebrow">COORDINATOR / DESIGN PREVIEW</span></div>
       <div class="team-identity"><div><h1 id="coordinator-title">${escape(coordinator.name)}</h1><p class="team-subtitle">${escape(coordinator.subtitle)}</p><p class="team-description">${escape(coordinator.description)}</p></div><span class="team-emblem">${icon(coordinator.icon, 68)}</span></div>
-      <div class="team-header-bottom"><div class="team-chips"><span>${coordinator.specialists.length} specialists</span><span>${escape(coordinator.subtitle)}</span></div><button type="button" class="primary-button" data-scenario="${scenarios[coordinator.id]}">${icon('branch', 15)} Preview assignment</button></div>
+      <div class="team-header-bottom"><div class="team-chips"><span>${coordinator.specialists.length} specialists</span><span>${escape(coordinator.subtitle)}</span></div>${coordinator.id === 'nereus' ? `<button type="button" class="primary-button" data-tab="assessment">${icon('document', 15)} Open assessment</button>` : `<button type="button" class="primary-button" data-scenario="${scenarios[coordinator.id]}">${icon('branch', 15)} Preview assignment</button>`}</div>
     </header>
     <section class="team-remit" aria-label="Coordination remit">
       <div class="team-remit-main"><p class="eyebrow">COORDINATION REMIT</p><p>${escape(coordinator.task)}</p></div>
