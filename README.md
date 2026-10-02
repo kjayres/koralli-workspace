@@ -1,6 +1,6 @@
-# Yfalos
+# Reef
 
-Yfalos is the working name for Koralli's internal agent workspace. Poseidon remains its overall coordinator. The prototype uses warm cream surfaces, rounded geometric headings and fine cobalt drawings. Nereus has a working evidence, review and saving flow, with an unconfigured model connector for later use.
+Reef is Koralli's internal agent workspace prototype. Poseidon remains its overall coordinator. The prototype uses warm cream surfaces, rounded geometric headings and fine cobalt drawings. Nereus has a working evidence, review and saving flow, with an unconfigured model connector for later use.
 
 [Open the interactive demo](https://kjayres.github.io/koralli-workspace/).
 
@@ -104,7 +104,7 @@ Use Command on macOS or Control on Windows/Linux:
 
 - `app.mjs`: shell, example content and local interaction state
 - `styles.css`: base visual system and responsive app layout
-- `assets/yfalos-theme.css`: final visual layer for Yfalos, loaded after the component styles
+- `assets/yfalos-theme.css`: final visual layer for Reef, loaded after the component styles
 - `workflow.mjs`, `workflow.css`: workflow diagram and its layout
 - `poseidon.mjs`, `poseidon.css`: team allocation, model profiles and handover preview
 - `fleet.mjs`: coordinator and specialist definitions, remits and draft instructions
@@ -126,7 +126,7 @@ The demo is hosted by GitHub Pages from the root of the `main` branch in `kjayre
 
 ## Visual direction
 
-Yfalos keeps the functional explorer, tabs, inspector and evidence workspace. Warm cream surfaces and rounded headings frame a compact allocation panel. Its four team rows keep responsibility, assignment and specialist controls aligned. The Poseidon symbol is unchanged.
+Reef keeps the functional explorer, tabs, inspector and evidence workspace. Warm cream surfaces and rounded headings frame a compact allocation panel. Its four team rows keep responsibility, assignment and specialist controls aligned. The Poseidon symbol is unchanged.
 
 Primary and secondary action buttons reveal a few fine grains at their edges on hover. An actual click triggers one brief mesh-wave sweep, purely as input feedback. It does not indicate model execution or completion. Reduced-motion preferences disable these effects, and keyboard focus remains visible. There are no background illustrations or continuous decorative animation loops. The earlier shoreline study and its generator are kept locally in the ignored `.preview/yfalos-shore-study/` archive.
 

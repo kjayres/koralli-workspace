@@ -1,4 +1,4 @@
-/* Yfalos: warm instrument surfaces, rounded letterforms and bounded button feedback. */
+/* Reef: warm instrument surfaces, rounded letterforms and bounded button feedback. */
 @font-face{font-family:'Manrope';src:url('./manrope-latin.woff2') format('woff2');font-weight:400 700;font-display:swap}
 body{background:var(--sidebar)}
 h1,h2,h3,.brand>span:first-of-type,.agent-row strong{font-family:var(--display)}
